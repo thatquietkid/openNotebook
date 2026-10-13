@@ -1,0 +1,34 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+.uv-cache/
+.uv-python/
+
+# Environment and secrets
+.env
+*.env
+
+# SQLite Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Node & Frontend
+node_modules/
+dist/
+.vite/
+
+# Go binaries
+*.exe
+processor/processor.exe
+processor/bin/
+backend/processor/bin/
+backend/processor/*.exe

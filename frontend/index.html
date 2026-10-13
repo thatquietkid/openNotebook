@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ResearchLM helps you explore documents, ask questions grounded in your sources, and generate cited study guides and podcast scripts.">
+    <title>ResearchLM — Advanced RAG Notebook</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/katex/katex.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar" role="complementary" aria-label="Notebook navigation" aria-hidden="false">
+            <div class="sidebar-header">
+                <div class="logo-group">
+                    <div class="logo-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#grad1)" opacity="0.9"/>
+                            <path d="M2 17l10 5 10-5" stroke="url(#grad2)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            <path d="M2 12l10 5 10-5" stroke="url(#grad2)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="grad1" x1="2" y1="2" x2="22" y2="12">
+                                    <stop offset="0%" stop-color="#818cf8"/>
+                                    <stop offset="100%" stop-color="#6366f1"/>
+                                </linearGradient>
+                                <linearGradient id="grad2" x1="2" y1="12" x2="22" y2="22">
+                                    <stop offset="0%" stop-color="#818cf8"/>
+                                    <stop offset="100%" stop-color="#a78bfa"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="logo-text">ResearchLM</span>
+                </div>
+                <button class="icon-btn sidebar-close-btn" id="btnCloseSidebar" type="button" aria-label="Close notebook navigation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Notebooks List -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span>Notebooks</span>
+                    <button class="icon-btn small" id="btnNewNotebook" type="button" aria-label="Create notebook" title="New Notebook">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                </div>
+                <div class="notebooks-list" id="notebooksList">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Sources Panel -->
+            <div class="sidebar-section sources-panel" id="sourcesPanel">
+                <div class="sidebar-section-header">
+                    <span>Sources</span>
+                    <button class="icon-btn small" id="btnUploadSource" type="button" aria-label="Upload source" title="Upload Source">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </button>
+                </div>
+                <div class="sources-list" id="sourcesList">
+                    <!-- Populated via JS -->
+                </div>
+                <div class="upload-status-list" id="uploadStatusList" aria-live="polite" aria-relevant="additions text"></div>
+                <p class="source-selection-summary" id="activeSourceSummary" aria-live="polite"></p>
+                <input type="file" id="fileInput" accept=".pdf,.txt,.md,.csv,.json" hidden multiple>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot"></div>
+                    <span>Connecting...</span>
+                </div>
+            </div>
+        </aside>
+
+        <button class="sidebar-backdrop hidden" id="sidebarBackdrop" type="button" aria-label="Close notebook navigation"></button>
+
+        <!-- Main Content -->
+        <main class="main-content" aria-label="Research workspace">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="icon-btn" id="btnToggleSidebar" type="button" aria-label="Toggle notebook navigation" aria-controls="sidebar" aria-expanded="true" title="Toggle Sidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h1 class="notebook-title" id="notebookTitle">Select a Notebook</h1>
+                </div>
+                <div class="top-bar-right">
+                    <button class="btn-outline" id="btnStudio" type="button" aria-controls="studioPanel" aria-expanded="false">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        Studio
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat + Studio Container -->
+            <div class="content-wrapper">
+                <!-- Chat View -->
+                <div class="chat-view" id="chatView">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="welcome-state" id="welcomeState">
+                            <div class="welcome-icon">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#wg1)" opacity="0.7"/>
+                                    <path d="M2 17l10 5 10-5" stroke="url(#wg2)" stroke-width="1.5" fill="none"/>
+                                    <path d="M2 12l10 5 10-5" stroke="url(#wg2)" stroke-width="1.5" fill="none"/>
+                                    <defs>
+                                        <linearGradient id="wg1" x1="2" y1="2" x2="22" y2="12">
+                                            <stop offset="0%" stop-color="#818cf8"/>
+                                            <stop offset="100%" stop-color="#6366f1"/>
+                                        </linearGradient>
+                                        <linearGradient id="wg2" x1="2" y1="12" x2="22" y2="22">
+                                            <stop offset="0%" stop-color="#818cf8"/>
+                                            <stop offset="100%" stop-color="#a78bfa"/>
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            </div>
+                            <h2 id="welcomeTitle">Welcome to ResearchLM</h2>
+                            <p id="welcomeCopy">Add a source, then ask a question grounded in your documents.</p>
+                            <div class="welcome-actions" id="welcomeActions"></div>
+                            <div class="welcome-suggestions" id="welcomeSuggestions"></div>
+                        </div>
+                    </div>
+                    <p class="visually-hidden" id="chatStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+
+                    <!-- Input Area -->
+                    <div class="chat-input-area">
+                        <div class="input-container">
+                            <textarea id="chatInput" aria-label="Ask a question about your sources" aria-describedby="chatGroundingHint sourceSelectionHint" placeholder="Ask anything about your sources..." rows="1"></textarea>
+                            <button class="send-btn" id="btnSend" type="button" aria-label="Send question" disabled>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            </button>
+                        </div>
+                        <div class="input-footer">
+                            <span class="input-hint" id="chatGroundingHint">Answers are grounded in your uploaded sources with inline citations</span>
+                            <span class="input-hint hidden" id="sourceSelectionHint">Select at least one source to ask a question.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Studio Panel (toggled) -->
+                <div class="studio-panel hidden" id="studioPanel">
+                    <div class="studio-header">
+                        <h2>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                            Notebook Studio
+                        </h2>
+                        <button class="icon-btn" id="btnCloseStudio" type="button" aria-label="Close Studio">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <p class="studio-selection-hint hidden" id="studioSelectionHint">Select at least one source to create a Studio item.</p>
+                    <div class="studio-actions">
+                        <div class="studio-action-item">
+                        <button class="studio-card" id="btnPodcast" type="button" data-studio-type="podcast">
+                            <span class="studio-card-icon podcast" aria-hidden="true">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </span>
+                            <span class="studio-card-content">
+                                <span class="studio-card-title" role="heading" aria-level="3">Podcast script</span>
+                                <span class="studio-card-description">Generate a two-host dialogue script based on your sources</span>
+                            </span>
+                        </button>
+                        <p class="studio-card-status" data-studio-status="podcast" role="status" aria-live="polite" aria-atomic="true"></p>
+                        </div>
+                        <div class="studio-action-item">
+                        <button class="studio-card" id="btnStudyGuide" type="button" data-studio-type="study-guide">
+                            <span class="studio-card-icon study" aria-hidden="true">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                            </span>
+                            <span class="studio-card-content">
+                                <span class="studio-card-title" role="heading" aria-level="3">Study Guide</span>
+                                <span class="studio-card-description">Comprehensive study guide with key concepts, quiz questions, and essay prompts</span>
+                            </span>
+                        </button>
+                        <p class="studio-card-status" data-studio-status="study-guide" role="status" aria-live="polite" aria-atomic="true"></p>
+                        </div>
+                        <div class="studio-action-item">
+                        <button class="studio-card" id="btnBriefingDoc" type="button" data-studio-type="briefing-doc">
+                            <span class="studio-card-icon briefing" aria-hidden="true">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            </span>
+                            <span class="studio-card-content">
+                                <span class="studio-card-title" role="heading" aria-level="3">Briefing Doc</span>
+                                <span class="studio-card-description">Executive-ready briefing with key findings, methodology, and strategic takeaways</span>
+                            </span>
+                        </button>
+                        <p class="studio-card-status" data-studio-status="briefing-doc" role="status" aria-live="polite" aria-atomic="true"></p>
+                        </div>
+                        <div class="studio-action-item">
+                        <button class="studio-card" id="btnFAQ" type="button" data-studio-type="faq">
+                            <span class="studio-card-icon faq" aria-hidden="true">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </span>
+                            <span class="studio-card-content">
+                                <span class="studio-card-title" role="heading" aria-level="3">FAQ</span>
+                                <span class="studio-card-description">Auto-generated frequently asked questions and answers from your sources</span>
+                            </span>
+                        </button>
+                        <p class="studio-card-status" data-studio-status="faq" role="status" aria-live="polite" aria-atomic="true"></p>
+                        </div>
+                    </div>
+
+                    <div class="studio-artifacts" id="studioArtifacts">
+                        <h3>Generated Artifacts</h3>
+                        <div class="artifacts-list" id="artifactsList">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Source Viewer Modal -->
+    <div class="modal-overlay hidden" id="sourceViewerModal">
+        <div class="modal-content source-viewer-modal" role="dialog" aria-modal="true" aria-labelledby="sourceViewerTitle" tabindex="-1">
+            <div class="modal-header">
+                <h2 id="sourceViewerTitle">Source Details</h2>
+                <button class="icon-btn" id="btnCloseSourceViewer" type="button" aria-label="Close source details">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" id="sourceViewerBody">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Artifact Viewer Modal -->
+    <div class="modal-overlay hidden" id="artifactModal">
+        <div class="modal-content artifact-modal" role="dialog" aria-modal="true" aria-labelledby="artifactTitle" tabindex="-1">
+            <div class="modal-header">
+                <h2 id="artifactTitle">Artifact</h2>
+                <button class="icon-btn" id="btnCloseArtifact" type="button" aria-label="Close generated item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body artifact-body" id="artifactBody">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- New Notebook Modal -->
+    <div class="modal-overlay hidden" id="newNotebookModal">
+        <div class="modal-content small-modal" role="dialog" aria-modal="true" aria-labelledby="newNotebookHeading" tabindex="-1">
+            <div class="modal-header">
+                <h2 id="newNotebookHeading">Create Notebook</h2>
+                <button class="icon-btn" id="btnCloseNewNotebook" type="button" aria-label="Close create notebook dialog">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="newNotebookTitle">Title</label>
+                <input type="text" class="form-input" id="newNotebookTitle" data-dialog-initial-focus placeholder="e.g. ML Research Deep Dive">
+                <label class="form-label" for="newNotebookDesc" style="margin-top: 12px;">Description</label>
+                <input type="text" class="form-input" id="newNotebookDesc" placeholder="Brief description (optional)">
+                <button class="btn-primary" id="btnCreateNotebook" style="margin-top: 20px; width: 100%;">Create Notebook</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay" role="status" aria-live="polite" aria-atomic="true">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script defer src="vendor/markdown-it/markdown-it.umd.min.js"></script>
+    <script defer src="vendor/katex/katex.min.js"></script>
+    <script defer src="vendor/katex/contrib/auto-render.min.js"></script>
+    <script defer src="app.js"></script>
+</body>
+</html>
